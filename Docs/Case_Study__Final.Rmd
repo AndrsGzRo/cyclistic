@@ -1,0 +1,279 @@
+---
+title: "Capstone Project: Cyclistic Bike-Share"
+author: "Andres Guzman Rodriguez"
+date: "2024-02-26"
+output: html_document
+---
+
+### Scenario
+
+You are a junior data analyst working on the marketing analyst team at Cyclistic, a bike-share company in Chicago. The director of marketing believes the company's future success depends on maximizing the number of annual memberships. Therefore, your team wants to understand how casual riders and annual members use Cyclistic bikes differently. From these insights, your team will design a new marketing strategy to convert casual riders into annual members. But first, Cyclistic executives must approve your recommendations, so they must be backed up with compelling data insights and professional data visualizations.
+
+### About the company
+
+Cyclistic Bike-Share is a fictional Chicago based bike-share program that features more than 5,800 bicycles and 600 docking stations. This program offers reclining bicycles, hand tricycles, and cargo bikes. Cyclistic offers two types of memberships, casual and members. Casual riders are the ones who purchase a single-ride pass or a full-day pass, while the members are the riders who purchase an annual membership.
+
+### 1. Ask
+
+The guiding questions are the following:
+
+1.  How do annual members and casual riders use Cyclistic bikes differently?
+
+2.  How do annual members and casual riders use Cyclistic bikes differently?
+
+3.  Why would casual riders buy Cyclistic annual memberships?
+
+4.  How can Cyclistic use digital media to influence casual riders to become members?
+
+#### Business Task
+
+Understand how casual riders and annual members use Cyclistic bikes differently. From this insights, the marketing team will design a marketing strategy to convert casual riders to members.
+
+#### Stakeholders
+
+-   **Cyclistic executive team**
+-   **Director of marketing**
+-   **Cyclistic marketing analytics team**
+
+### 2. Prepare
+
+The last 12 months of Cyclistic's trip data (From February 2023 to January 2024) are made available in separate .csv files at this [site](https://divvy-tripdata.s3.amazonaws.com/index.html). The historic data for Cyclistic's trip data is made available by Motivate International Inc. under this [license](https://divvybikes.com/data-license-agreement).
+
+Each CSV file has 13 rows with information about the type of bicycle that was used in a trip, start and end time with date, start and end station and, the type of member that used the bike.
+
+##### Loading packages and setting up the R environment
+
+```{r Loading Packages}
+library(tidyverse)
+library(readr)
+library(skimr)
+library(tidyr)
+library(janitor)
+library(dplyr)
+library(lubridate)
+library(ggplot2)
+```
+
+##### Loading the data
+
+To load the data, we will use the read_csv function included in the **readr** package. We will load the historic data from February 2023 to January 2024.
+
+```{r Loading CSV files}
+feb23 <- read_csv("C:/Users/Andre/Documents/Capstone/202302-divvy-tripdata.csv",show_col_types = FALSE)
+mar23 <- read_csv("C:/Users/Andre/Documents/Capstone/202303-divvy-tripdata.csv",show_col_types = FALSE) 
+apr23 <- read_csv("C:/Users/Andre/Documents/Capstone/202304-divvy-tripdata.csv",show_col_types = FALSE)
+may23 <- read_csv("C:/Users/Andre/Documents/Capstone/202305-divvy-tripdata.csv",show_col_types = FALSE)
+jun23 <- read_csv("C:/Users/Andre/Documents/Capstone/202306-divvy-tripdata.csv",show_col_types = FALSE)
+jul23 <- read_csv("C:/Users/Andre/Documents/Capstone/202307-divvy-tripdata.csv",show_col_types = FALSE)
+aug23 <- read_csv("C:/Users/Andre/Documents/Capstone/202308-divvy-tripdata.csv",show_col_types = FALSE)
+sep23 <- read_csv("C:/Users/Andre/Documents/Capstone/202309-divvy-tripdata.csv",show_col_types = FALSE)
+oct23 <- read_csv("C:/Users/Andre/Documents/Capstone/202310-divvy-tripdata.csv",show_col_types = FALSE)
+nov23 <-read_csv("C:/Users/Andre/Documents/Capstone/202311-divvy-tripdata.csv",show_col_types = FALSE)
+dec23 <- read_csv("C:/Users/Andre/Documents/Capstone/202312-divvy-tripdata.csv",show_col_types = FALSE)
+jan24 <- read_csv("C:/Users/Andre/Documents/Capstone/202401-divvy-tripdata.csv",show_col_types = FALSE)
+
+```
+
+##### Reliable, Original, Comprehensive, Current, Cited (ROCCC)
+
+To measure the reliability of a data set we use the process \*\*ROCCC\*, which consists of:
+
+-   **Reliable:** Data sources are reliable, accurate, complete and unbiased information.
+-   **Original:** Data from first, second, or third party source. In this case, the data was made available by Motivate International Inc, which is a first party source.
+-   **Comprehensive:** The data set contains all the critical information to answer the question or find the solution.
+-   **Current:** We will use the historic data trips from the last 12 months, from February 2023 to January 2024.
+-   **Cited:** The data is under a *data licence agreement* which grants us a non-exclusive, royalty-free, limited, perpetual licence to access, reproduce, analyze, copy, modify, and distribution of the data.
+
+##### Joining the data
+
+To join all twelve months of trip data, we will use the *rbind()* function
+
+```{r Joining data}
+cyclistic_trips <- rbind(feb23,mar23,apr23,may23,jun23,jul23,aug23,sep23,oct23,nov23,dec23,jan24)
+```
+
+We get a data frame with 5,674,449 rows.
+
+Now, we want to the structure of the data set, in this case, we want to know the name of the columns and the total missing values.
+
+```{r colnames}
+colnames(cyclistic_trips)
+```
+
+To narrow down the information we are going to use, we will select the columns that are important to our analysis, which are the following: 
+-**rideable_type**: Type of bicycle that was used on a trip. 
+-**started_at**: Starting time of the trip.
+-**ended_at**: End time of the trip. 
+-**start_station_name**: Name of the starting station. 
+-**start_station_id**: ID of the starting station. 
+-**end_station_name**: Name of the ending station. 
+-**end_station_id**: ID of the ending station. 
+-**member_casual**: Type of member that used Cyclistic, casual or member.
+
+Now, we create the data frame with the columns we will use.
+
+```{r New Data Frame}
+complete_trips <- cyclistic_trips %>%
+  select(rideable_type,started_at,ended_at,start_station_name,start_station_id,end_station_name,end_station_id,member_casual)
+```
+
+We check the columns in the new data frame.
+
+```{r New col names}
+colnames(complete_trips)
+```
+
+We look how many missing values are there in the new data set.
+```{r empty values}
+sum(is.na(complete_trips))
+colSums(is.na(complete_trips))
+```
+There are 3,580,815 missing values across all columns, the majority of them are in the start and end station name and, in the start and end station ID. These values won't affect the analysis, so we will keep them. 
+
+### 3. Proccess 
+We need to add the columns that store the day, month, year, and date of each trip. This will be useful for knowing which are the busiest days and the busiest months.
+```{r New columns: day, month, year and date}
+complete_trips$date <- as.Date(complete_trips$started_at)
+complete_trips$day <- format(as.Date(complete_trips$date),"%d")
+complete_trips$month <- format(as.Date(complete_trips$date),"%m")
+complete_trips$year <- format(as.Date(complete_trips$date),"%Y")
+complete_trips$day_of_week <- format(as.Date(complete_trips$date),"%A")
+#We also create the column ride length, which is the total time of the ride.
+complete_trips$ride_length <- difftime(complete_trips$ended_at,complete_trips$started_at, units="mins")
+complete_trips$ride_length <- round(complete_trips$ride_length, digits = 2)
+glimpse(complete_trips)
+```
+We remove the *ride_length* entries where the values are below zero.
+```{r remove ride lengths}
+complete_trips_2 <- na.omit(cyclistic_trips)
+complete_trips_2 <- complete_trips[!(complete_trips$ride_length<0),]
+```
+
+Mutating *ride_length* to a numeric value so we can run the calculations in the *analysis* process.
+```{r numeric value}
+complete_trips_2$ride_length <- as.numeric(complete_trips_2$ride_length)
+is.numeric(complete_trips_2$ride_length)
+```
+
+### 4. Analyze
+Now, we will run some calculations to get a better sense of the data.
+The calculations will be:
+
+- Average ride length
+- Maximum ride length
+- Total members and casual riders and the percentage of them.
+- Average and maximum length per member.
+- Number of rides for user by day of the week.
+- Average ride length by day of the week.
+
+```{r Calculations}
+#Average ride length
+ avrg_ride <- mean(complete_trips_2$ride_length)
+#Maximum ride length
+max(complete_trips_2$ride_length)
+``` 
+The maximum ride length is over 68 days, so we will put a limit in ride length, which will be 23 hours that equals 1380 minutes. 
+
+```{r Limit time}
+complete_trips_2 <- complete_trips_2[!(complete_trips_2$ride_length>1380),]
+#Maximum ride length
+max(complete_trips_2$ride_length)
+```
+
+```{r Members}
+#Percentage of members
+members <- complete_trips_2 %>%
+  group_by(member_casual) %>%
+  summarize(Num_members= n(), Percentage= n()/sum(nrow(complete_trips_2))*100)
+print(members)
+```
+Average length per member:
+```{r Average length per member}
+summary_members <- complete_trips_2 %>%
+  group_by(member_casual) %>%
+  summarize(average_length=mean(ride_length),max_length = max(ride_length))
+print(summary_members)
+```
+The days of the week are not in order, R is reading them as a character, so it is ordering them in alphabetical order. We need to convert the column *day_of_week* to factor and specify the order of the days.Now we calculate the number of rides per user by day of the week and the average length.
+```{r days of the week}
+complete_trips_2$day_of_week <-factor(complete_trips_2$day_of_week,levels=c("lunes","martes","miércoles","jueves","viernes","sábado","domingo"))
+
+rides_user_week <- complete_trips_2 %>%
+  group_by(member_casual, day_of_week) %>%
+  summarize(num_rides = n(), average_length= mean(ride_length)) 
+print(rides_user_week)
+```
+
+### 5. Visualizations
+
+#### Number of trips by type of bike
+```{r trips by bike}
+complete_trips_2 %>% 
+  group_by(member_casual, rideable_type) %>%
+  summarize(num_rides = n(),) %>%
+  arrange(member_casual, rideable_type) %>%
+  ggplot(aes(x=rideable_type, y= num_rides, fill=member_casual)) + geom_col(position="dodge") + xlab("Type of Bike") + ylab("Trips")+ scale_y_continuous(labels=function(x) format (x, scientific= FALSE))+ labs(title="Trips by type of bike", subtitle="Casual vs Member",caption="From February 2023 to Jan 2024")
+```
+
+
+#### Total number of trips by members
+```{r visualization members}
+ggplot(data=complete_trips_2) + geom_bar(aes(x=member_casual, fill = member_casual)) + labs(title="Total number of trips by members", subtitle =  "Casual vs. Member",caption="From February 2023 to Jan 2024") + xlab("Type of Member") + ylab("Rides") + scale_y_continuous(labels=function(x) format (x, scientific= FALSE))
+```
+#### Number of rides per member by day of the week
+
+```{r Number of rides per member by day of the week}
+ggplot(data=complete_trips_2)+ geom_bar(aes(x=day_of_week, fill=member_casual)) +facet_wrap(~member_casual)+theme(axis.text.x=element_text(angle=45, hjust=1,vjust=1))+ labs(title = "Number of rides per member by day of the week", subtitle = "Casual vs. Member",caption="From February 2023 to Jan 2024") + xlab("Day of the week") + ylab("Rides")+ scale_x_discrete(labels=c("Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday")) + scale_y_continuous(labels=function(x) format (x, scientific= FALSE))
+```
+#### Average ride length by member per day of the week
+```{r Average ride length by member per day of the week}
+complete_trips_2 %>% 
+  group_by(member_casual, day_of_week) %>%
+  summarize(num_rides = n(), avrg_ride=mean(ride_length)) %>%
+  arrange(member_casual, day_of_week) %>%
+  ggplot(aes(x=day_of_week, y= avrg_ride, fill=member_casual)) + geom_col(position="dodge")+ facet_wrap(~member_casual) + xlab("Day of the week") + ylab("Minutes")+ scale_x_discrete(labels=c("Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday")) + scale_y_continuous(labels=function(x) format (x, scientific= FALSE))+ theme(axis.text.x=element_text(angle=45, hjust=1,vjust=1))+ labs(title="Average ride length by member", subtitle="Casual vs Member",caption="From February 2023 to Jan 2024")
+```
+
+#### Rides per month
+```{r Rides per month}
+complete_trips_2 %>% 
+  group_by(member_casual, month) %>%
+  summarize(num_rides = n()) %>%
+  arrange(member_casual, month) %>%
+  ggplot(aes(x=month, y= num_rides, fill=member_casual)) + geom_col(position="dodge")+ facet_wrap(~member_casual) + xlab("Month") + ylab("Rides")+ scale_y_continuous(labels=function(x) format (x, scientific= FALSE))+ scale_x_discrete(labels=c("Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"))+ theme(axis.text.x=element_text(angle=45, hjust=1,vjust=1))+ labs(title="Rides per month by member", subtitle="Casual vs Member", caption="From February 2023 to Jan 2024")
+```
+
+#### Average ride length per month
+```{r Average ride length per month}
+complete_trips_2 %>% 
+  group_by(member_casual, month) %>%
+  summarize(num_rides = n(), avrg_ride=mean(ride_length)) %>%
+  arrange(member_casual, month) %>%
+  ggplot(aes(x=month, y= avrg_ride, fill=member_casual)) + geom_col(position="dodge")+facet_wrap(~member_casual)+ xlab("Month") + ylab("Minutes")+ scale_y_continuous(labels=function(x) format (x, scientific= FALSE))+ scale_x_discrete(labels=c("Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"))+ theme(axis.text.x=element_text(angle=45, hjust=1,vjust=1))+ labs(title="Average ride length per month by member", subtitle="Casual vs Member", caption="From February 2023 to Jan 2024")
+```
+
+### 6. Share
+
+In order to share the analysis process with the stakeholders, a slide presentation will be made in *Google Slides*, the content of the presentation includes analysis process, graphs, key findings, and recommendations for the marketing team, the presentation is available in the next [link](https://docs.google.com/presentation/d/1ELokZ0qMRex9q-SjBJLLsEUfmeXO6k7mRr7g1JApHqk/edit#slide=id.p)
+
+### 7. Key Findings
+
+- Of the total 5,667,370 rides between February 2023 to January 2024: *64%* were taken by members, and *36%* were ridden by casual customers.
+- Members have an average ride length of *12 minutes* while the casual member has over *20 minutes* of average time. Casual customers have longer trips.
+- The busiest days for *casual members* are Monday, Friday, Saturday and Sunday. While the busiest days for *members* is on Friday to Sunday. The number or rides for members are consistent on the week, this means that the *members* use the bicycles for commuting over the weekdays, while the *casual members* use them for recreational purposes. This may suggest that Cyclistic members use the service for short distances.
+- The ride lengths by weekday have the same behavior, *casual members* have longer rides times, that take 15 minutes up to 25 minutes, while *members* have consistent ride lengths below 15 minutes. 
+- The *electric bike* is the most used by *casual members*, while the *members* use the *classic bike* and the *electric bike* equally.
+- The busiest months for *casual members* are in the summer, with a peak in July that consists of over 300,000 rides. This suggest that tourist are using the service in the summer, on the other hand, the busiest months for *members* are through April to November, with peaks in the summer, the peaks have over 400,000 rides. 
+- The average ride length, has the same behavior as the lengths by weekday, *casual members* average more time riding than *members*. In this case, *casual members*, average over 20 minutes through the summer, while *members* average below 15 minutes across the whole year. This suggests that *casual members* use Cyclistic services for recreational purposes and commuting, while *members* are local commuters and travel short distances.
+
+### 8. Act
+#### Recommendations
+
+1. *Make an attractive offer:* Show the *casual members* the exclusive benefits of becoming a *member* and how the price for a membership benefits the casual rider.
+2. *Marketing strategies:* Create attractive content in social media like Instagram and Tik Tok. Also, take advantage of platforms like Google Ads or Facebook Ads to reach our desired audience. In addition, Cyclistic can host free public events to help the audience know the benefits of using the service of Cyclistic and its benefits.
+3. *Make membership process easier:* Create a website that contains the information about the membership. Furthermore, the process the register yourself as a member has to simple an quick. As well, offer a variety of options to make the payment and make the *casual members* choose their best option according to their needs.
+4. *Customer service:* Offer a responsive customer service, that answers all the communities questions. This service, will inform members about activities and the benefits that Cyclistic offers. Most important, we can create a community where all the members can interact with each other.
+5. *Offer a free membership* to customers that are interested before they commit to pay.
+6. *Offer discounts* to the customer who join Cyclistic with family and friends.
+
+
